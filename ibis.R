@@ -59,6 +59,7 @@ kernel.move.m <- function(x,log.lik,y){
   return(x.new)
 }
 
+#
 # #####
 # # Univariate setting:
 # #####
