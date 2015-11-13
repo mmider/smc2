@@ -1,0 +1,49 @@
+#function that gives the state equation
+next_part_gen <- function( oldX, ){
+  N <- length(oldX)
+  rnorm(N, oldX, sd=1)
+}
+
+#function that evaluates the observation equation
+log_obs_dens <- function(current_X, current_t){
+  dnorm(Y[current_t] ,current_X, sd = 1, log = T)
+}
+
+#function that applies the particle filter 
+#accepts the number of periods T, the number of particles N_X, and the functions 
+#next_part_gen and log_obs_dens
+
+PARTICLE_FILTER<-function( periods_T, N_X, next_part_gen, log_obs_dens){
+  
+  #create vectors/matrices
+  particles_X <- matrix(0,  N_X, periods_T ) #stores the whole trajectory of particles
+  a_index <- matrix(0, N_X, periods_T)       #stores all indices
+  weights <- matrix( 0, N_X, periods_T)      #stores all the weights
+  
+  #first iteration
+  new_part <- rep( 0, N_X)                  #this is the mean in the state equation of the first particle
+  current_X <-next_part_gen(new_part)       #generate the first particle using the state equation
+  log_w <- log_obs_dens(current_X ,1)       #calculates the log_weights of the first particle
+  weights[ ,1] <- exp(log_w)                #calculates the actual weights
+  Weights <- (normalize.vector(exp(log_w))) #calculates the normalised weights
+  particles_X[,1] <- current_X              #stores the particles for t=1
+  
+  #subsequent iterations
+  for (t in 2:periods_T){
+    
+    index <- sample(1:N_X, prob = Weights, replace = TRUE)  #sample the indices
+    a_index[,(t-1)] <- index                                
+    new_part <- current_X[index]                           #samples the particles
+    particles_X[ ,t] <- next_part_gen(new_part)            #produces the particles for iteration t
+    log_w <- log_obs_dens(particles_X[,t] ,t)              #calculates the logweights
+    weights[ ,t] <- exp(log_w)                             #calculates the actual weights
+    Weights <- (normalize.vector(exp(log_w)))           #calculates the normalised weights
+    
+  }
+  
+   list(particles = particles_X, weights = weights, indices = a_index)
+  
+}
+
+result <- PARTICLE_FILTER(100,100,next_part_gen, log_obs_dens)
+result$weights

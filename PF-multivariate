@@ -1,0 +1,78 @@
+X<-rmvnorm(100, mean=c(0,0,0), diag(3))
+Y<-matrix(rep(1,300),100,3)
+
+next_part_gen <- function( oldX ){
+  
+  if ( is.matrix(oldX) ) {
+    dim_X <- ncol(oldX)
+    N <- nrow(oldX) 
+    matrix( rnorm(N * dim_X, mean = as.vector(t(oldX)), sd = 1), N, dim_X )
+  } 
+  
+  else {
+  N <- length(oldX)
+  dimX <- 1
+  rnorm(N, oldX, sd=1)
+  }
+  
+}
+
+
+
+
+log_obs_dens <- function(current_X, current_t){
+  
+  if (is.matrix( current_X) ){ 
+    N_X <- ncol( current_X)
+    OUT <- rep(0,N_X)
+    N = nrow(current_X)
+    dim_X = ncol(current_X)
+    for(i in 1:N){
+      OUT[i]<-dmvnorm( Y[current_t, ], current_X[i,], sigma = diag(dim_X))      
+    }
+    
+  }
+  else {
+    OUT<-dnorm(Y[current_t] ,current_X, sd = 1, log = T)
+  }
+OUT
+}
+
+
+PARTICLE_FILTER<-function( periods_T, N_X, dim_X, next_part_gen, log_obs_dens){
+  
+  #create vectors/matrices
+  particles_X <- array(0, c( N_X,dim_X ,periods_T ))
+  a_index <- matrix(0, N_X, periods_T)
+  weights <- matrix( 0, N_X, periods_T)
+  new_part <- matrix(0, N_X, dim_X)
+  log_w<-rep(0,N_X)
+  
+  #first iteration
+  new_part <- matrix( 0, N_X, dim_X)
+  current_X <-next_part_gen(new_part)
+  log_w <- log_obs_dens(current_X ,1)
+  weights[ ,1] <- exp(log_w)
+  Weights <- (normalize.vector(exp(log_w)))
+  particles_X[,,1] <- current_X
+  
+  #subsequent iterations
+  for (t in 2:periods_T){
+    
+  
+    index <- sample(1:N_X, prob = Weights, replace = TRUE)
+    a_index[,(t-1)] <- index
+    new_part <- current_X[index,]
+    particles_X[ ,,t] <- next_part_gen(new_part)
+    log_w <- log_obs_dens(particles_X[,,t] ,t)
+    weights[ ,t] <- exp(log_w)
+    Weights <- (normalize.vector(exp(log_w)))
+    
+  }
+  
+  list(particles = particles_X, weights = weights, indices = a_index)
+  
+}
+
+result <- PARTICLE_FILTER(100,100,next_part_gen, log_obs_dens)
+result$weights
