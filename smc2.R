@@ -1,9 +1,3 @@
-require(MCMCpack)
-
-log.prior.theta <- function(x, dim.observations = 3){
-  log.pr <- log(dinvgamma(x, 1,1)^dim.observations)
-  return(log.pr)
-}
 
 sample.kernel <- function(thetas, x.t, a.t, weights.t,y.t){
   # no move at all for now, just stay where you are
@@ -41,21 +35,13 @@ particle.filter.step <- function(theta, current.y, current.t, previous.x = NULL,
   if (current.t == 1){
     x <- x.sample.prior(N.x, theta)
     weights <- g.density(current.y, x, theta)
-    temp <- list(current.y, x[1:20,], theta)
   }
   else {
     x <- generate.particle(previous.x, theta)
     weights <- g.density(current.y,x, theta)
-    temp2 <-list(current.y, x, theta)
   }
   W <- weights/sum(weights)
-#   if (any(is.na(W))){
-#     print(temp)
-#     if (current.t != 1){
-#       print("****************************")
-#       print(temp2)
-#     }
-#   }
+
   a <- sample(1:N.x, prob = W, replace = T)
   return(list(x = x, weights = weights, a = a))
 }
@@ -103,7 +89,6 @@ smc2 <- function(N.theta, N.x, y, t.max, degen.cond){
     
   }
   
-  # final resampling:
   return(list(thetas = thetas, log.weights.theta = log.weights.theta,
               x.history = x.history, a.history = a.history,
               weights.history = weights.history))
